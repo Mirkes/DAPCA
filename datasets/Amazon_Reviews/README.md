@@ -4,9 +4,8 @@ https://github.com/GRAAL-Research/domain_adversarial_neural_network
 .mat files contain boths data matrix ('data') and the label vector ('label')
 
 The [Ganin et al, 2016](https://jmlr.org/papers/volume17/15-239/15-239.pdf) study suggests the following 12 domain adaptation problems
-with following accuracies achieved:
+with following accuracies achieved (for the original data - first three numerical columns, and for mSAD-transformed data - last three numerical columns):
 
-|             |             |    <td colspan=3>Original data  |<td colspan=3>mSAD transformed data|
 | Source      | Target      | DANN | NN   | SVM  |  DANN | NN   | SVM  |
 |-------------|-------------|------|------|------|-------|------|------|
 | books       | dvd         | .784 | .790 | .799 |  .829 | .824 | .830 |
