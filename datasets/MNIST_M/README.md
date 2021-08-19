@@ -8,3 +8,7 @@ Therefore MNIST_M represents a 'corrupted' version of MNIST.
 The MNIST_M image data were downloaded from [http://yaroslav.ganin.net/](http://yaroslav.ganin.net/).
 Each image was rescaled to 28x28 image (since the images were 32x32 size) and then encoded as a flat vector.
 
+The MNIST_M_train.mat file is 220Mb size and should be downloaded [separately](https://drive.google.com/file/d/1rEDSvbeQ5XR2k3qgioXzTptd-IfDSlsp/view?usp=sharing).
+
+.mat files contain boths data matrix ('data') and the label vector ('label')
+
