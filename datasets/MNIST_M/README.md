@@ -13,7 +13,7 @@ The MNIST_M_train.mat file is 220Mb size and should be downloaded [separately](h
 .mat files contain boths data matrix ('data') and the label vector ('label')
 
 The [Ganin et al, 2016](https://jmlr.org/papers/volume17/15-239/15-239.pdf) study 
-reports the following accuracies achieved on training on MNIST data (source) and testing on MNIST_M data (target)
+reports the following accuracies achieved adaptation of MNIST data (source) and MNIST_M data (target)
        	
 | METHOD                      | ACCURACY(Gain)| 
 |-----------------------------|---------------|
