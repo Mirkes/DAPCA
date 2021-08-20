@@ -29,6 +29,6 @@ For each of the two DA methods (ours and Fernando et al., 2013) we
 show how much of the gap between the lower and the upper bounds was covered
 (in brackets).
 
-The following image depicts the difficulty of the domain adaptation problem: two datasets have very different axes of the main principal variance:
+The following image depicts the difficulty of the domain adaptation problem: two datasets have very different axes of the main principal variance. Also, there seems to be a non-linear 'twist' in MNIST_M (probably, related to dark vs light backgrounds).
 
 ![PCA of test sets MNIST and MNIST_M](https://github.com/Mirkes/DAPCA/blob/main/images/MNIST_vs_MNIST_M_PCA.png) 
