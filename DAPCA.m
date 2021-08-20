@@ -8,9 +8,9 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
 %   learning. arXiv preprint arXiv:2106.15416. or in ???
 %
 % Usage
-%           [V, D] = DAPCA(X, Labels, Y, nComp)
+%           [V, D, PX, PY] = DAPCA(X, Labels, Y, nComp)
 % or
-%           [V, D] = DAPCA(X, Labels, Y, nComp, Name, Value)
+%           [V, D, PX, PY] = DAPCA(X, Labels, Y, nComp, Name, Value)
 %
 % Inputs:
 %   X is n-by-d labelled data matrix. Each row of matrix contains one
@@ -75,12 +75,6 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
 %   https://github.com/Mirkes/DataImputation.
 %   Rows with NaN valuse will be removed.
 
-%       'kNN', positive integer number is number of neares neighbours to
-%           use for unlabbeled data. 
- 
-%       'delta', negative real number R assumes usage of matrix Delta with
-%           elements Delta(i,j) = R*abs(i-j) for i ~= j.
-
     % Sanity check of positional arguments
     % Type of X
     if ~isnumeric(X) || ~ismatrix(X)
@@ -99,13 +93,13 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
         labels(ind) = [];
     end
     % Calculate sizes of data
-    [n, d] = size(X);
-    if n == 0
+    [nX, d] = size(X);
+    if nX == 0
         error(['Matrix X must not be empty even after removing of',...
             ' incomplete rows']);
     end
     k = size(labels, 1);
-    if k ~= n 
+    if k ~= nX 
         error(['Number of elements in labels must be the same as number',...
             ' of row in matrix X']);
     end
@@ -119,10 +113,12 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
             Y(ind, :) = [];
         end
     end
+    useY = true
     if isempty(Y)
         warning('Since matrix Y is empty the SPCA is used');
+        useY = false;
     else
-        [m, k] = size(Y);
+        [nY, k] = size(Y);
         if k ~= d
             error('It is assumed that set of features in X and Y is the same');
         end
@@ -238,7 +234,135 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
             ' DAPCA and must  be positive integer value']);
     end
 
-
+    % Calculate number of cases of each class n_i and means for classes
+    % mu_i formula (6)?
+    cnt = zeros(nClass, 1);
+    means = zeros(nClass, d);
+    for k = 1:nClass
+        ind = labNum == k;
+        cnt(k) = sum(ind);
+        means(k, :) = sum(X(ind, :));
+    end
+    if useY
+        meanY = sum(Y);
+    end
+    % Convert matrix delta to full matrix with -alpha on diagonal and delta
+    % off diagonal and with normalisation by number of elements in each
+    % class. Formulae (12)
+    alpha = -alpha ./ (cnt .* (cnt -1));
+    delta = delta ./ (cnt * cnt');
+    tmp = triu(delta, 1);
+    delta = tmp + tmp' + diag(alpha);
+    % Normalise other coefficients
+    if useY
+        beta = beta / (nY * (nY - 1));
+        gamma = gamma / (kNN * nY);
+    end
+    
+    % Calculation of constant parts of sum of weights vectors. Formulae
+    % (13) and (10)
+    tmp = delta * cnt;
+    wX = repelem(tmp, cnt);
+    if useY
+        wY = repmat(nY * beta, nY, 1);
+    end
+    
+    % Calculation of constant parts of matrix Q.
+    % Y part
+    if useY
+        constQ = beta * (meanY' * meanY);
+    else
+        constQ = zeros(d);
+    end
+    % X Part
+    for k = 1:nClass
+        % diagonal part
+        constQ = constQ + delta(k, k) * (means(k, :)' * means(k, :));
+        % Off diagonal part
+        for kk = k + 1:nClass
+            tmp = delta(k, kk) * (means(k, :)' * means(kk, :));
+            constQ = constQ + tmp + tmp';
+        end
+    end    
+    
+    % Now we are ready for iterations.
+    if useY
+        kNNs = zeros(nY, kNN);
+        kNNDist = kNNs;
+        % estimate step of Y records to calculate distances to all X records
+        maxY = floor(1e8 / nX);
+        if maxY > nY
+            maxY = nY;
+        end
+        maxY = maxY - 1;
+        PY = Y;
+    end
+    PX = X;
+    % Start iterations
+    iterNum = 0;
+    while true
+        wXX = wX;
+        Q2 = constQ;
+        if useY
+            % Remember old kNNs
+            oldkNN = kNNs;
+            % Calculate new kNNs
+            % calculate squared length of X vectors
+            PX2 = sum(PX .^ 2, 2)';
+            k = 1;
+            wYY = wY;
+            while k <= nY
+                % Define end of fragment
+                kk = k + maxY;
+                if kk > nY
+                    kk = nY;
+                end
+                % Calculate distances
+                dist = sum(PY(k:kk, :) .^ 2, 2) + PX2 - 2 * PY(k:kk, :) * PX';
+                % Search NN
+                [dist, ind] = sort(dist, 2);
+                % Get kNN element
+                kNNDist(k:kk, :) = - gamma * kNNweights(dist(:, 2:kNN + 1));
+                kNNs(k:kk, :) = ind(2:kNN + 1);
+                % Correct wYY
+                wYY(k:kk) = wYY(k:kk) + sum(kNNDist(k:kk, :), 2);
+                % Add summand to Q2
+                nS = kk - k + 1;
+                tmp = zeros(nS, nX);
+                tmp(sub2ind(size(tmp),repmat((1:nS)', 1, kNN),ind)) = kNNDist(k:kk, :);
+                tmp = Y(k:kk, :) * tmp * X;
+                Q2 = Q2 + tmp + tmp';
+                % Shift k in Y
+                k = kk + 1;
+            end
+            wXX = wXX + sum(kNNDist, 1);
+            if all(oldkNN == kNNs)
+                break;
+            end
+        end    
+        % X part of Q1
+        Q1 = X' * (wXX .* X);
+        % Y part of Q1
+        if useY
+            Q1 = Q1 + Y' * (wYY .* Y);
+        end
+        % Full amtrix is
+        Q = Q1 - Q2;
+        % Calculate principal components.
+        [V, D] = eigs(Q, nComp, 'largestreal');
+        % Normalise eigenvalues
+        D = diag(D) / sum(diag(Q));
+        % Calculate projection
+        PX = X * V;
+        if useY
+            PY = Y * V;
+        else
+            PY = [];
+        end
+        if iterNum == maxIter || ~useY
+            break;
+        end
+    end
 end
 
 function weights = uniformWeights(distances)
