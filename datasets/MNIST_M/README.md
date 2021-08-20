@@ -32,3 +32,7 @@ show how much of the gap between the lower and the upper bounds was covered
 The following image depicts the difficulty of the domain adaptation problem: two datasets have very different axes of the main principal variance. Also, there seems to be a non-linear 'twist' in MNIST_M (probably, related to dark vs light backgrounds).
 
 <img src="https://github.com/Mirkes/DAPCA/blob/main/images/MNIST_vs_MNIST_M_PCA.png" alt="PCA of test sets MNIST and MNIST_M" width="500"/>
+
+However, SupervisedPCA seems to make a good job:
+
+<img src="https://github.com/Mirkes/DAPCA/blob/main/images/MNIST_vs_MNIST_M_SupervisedPCA.png" alt="SupervisedPCA of test sets MNIST and MNIST_M" width="500"/>
