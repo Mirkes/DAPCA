@@ -12,3 +12,23 @@ The MNIST_M_train.mat file is 220Mb size and should be downloaded [separately](h
 
 .mat files contain boths data matrix ('data') and the label vector ('label')
 
+The [Ganin et al, 2016](https://jmlr.org/papers/volume17/15-239/15-239.pdf) study 
+reports the following accuracies achieved on training on MNIST data (source) and testing on MNIST_M data (target)
+       	
+| METHOD                      | ACCURACY(Gain)| 
+|-----------------------------|---------------|
+| Source only                 | .5225         | 
+| SA (Fernando et al., 2013)  | .5690 (4.1%)  | 
+| DANN                        | .766 (52.9%)  | 
+| Train on target             | .9596         | 
+
+Table legend: The first row corresponds to the lower performance bound
+(i.e., if no adaptation is performed). The last row corresponds to training on
+the target domain data with known class labels (upper bound on the DA performance).
+For each of the two DA methods (ours and Fernando et al., 2013) we
+show how much of the gap between the lower and the upper bounds was covered
+(in brackets).
+
+The following image depicts the difficulty of the domain adaptation problem: two datasets have very different axes of the main principal variance:
+
+![PCA of test sets MNIST and MNIST_M](https://github.com/Mirkes/DAPCA/blob/main/images/MNIST_vs_MNIST_M_PCA.png) 
