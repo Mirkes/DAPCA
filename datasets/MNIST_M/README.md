@@ -22,13 +22,13 @@ reports the following accuracies achieved on training on MNIST data (source) and
 | DANN                        | .766 (52.9%)  | 
 | Train on target             | .9596         | 
 
-Table legend: The first row corresponds to the lower performance bound
+Table legend: *The first row corresponds to the lower performance bound
 (i.e., if no adaptation is performed). The last row corresponds to training on
 the target domain data with known class labels (upper bound on the DA performance).
 For each of the two DA methods (ours and Fernando et al., 2013) we
 show how much of the gap between the lower and the upper bounds was covered
-(in brackets).
+(in brackets).*
 
 The following image depicts the difficulty of the domain adaptation problem: two datasets have very different axes of the main principal variance. Also, there seems to be a non-linear 'twist' in MNIST_M (probably, related to dark vs light backgrounds).
 
-![PCA of test sets MNIST and MNIST_M](https://github.com/Mirkes/DAPCA/blob/main/images/MNIST_vs_MNIST_M_PCA.png) 
+<img src="https://github.com/Mirkes/DAPCA/blob/main/images/MNIST_vs_MNIST_M_PCA.png" alt="PCA of test sets MNIST and MNIST_M" width="500"/>
