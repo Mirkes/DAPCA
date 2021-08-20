@@ -31,4 +31,4 @@ show how much of the gap between the lower and the upper bounds was covered
 
 The following image depicts the difficulty of the domain adaptation problem: two datasets have very different axes of the main principal variance:
 
-![PCA of test sets MNIST and MNIST_M](https://github.com/Mirkes/DAPCA/blob/main/images/MNIST_vs_MNIST_M_PCA.png =1000x) 
+![PCA of test sets MNIST and MNIST_M](https://github.com/Mirkes/DAPCA/blob/main/images/MNIST_vs_MNIST_M_PCA.png) 
