@@ -113,7 +113,7 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
             Y(ind, :) = [];
         end
     end
-    useY = true
+    useY = true;
     if isempty(Y)
         warning('Since matrix Y is empty the SPCA is used');
         useY = false;
@@ -139,24 +139,24 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
     maxIter = 5;
     % Loop of arguments
     for k = 1:2:length(varargin)
-        tmp = varargin(k);
+        tmp = varargin{k};
         if ~isstring(tmp) && ~ischar(tmp)
             error('Wrong argument name "%s" in name value pair %d', tmp, k);
         end
         if strcmpi('alpha', tmp)
-            alpha = varargin(k + 1);
+            alpha = varargin{k + 1};
         elseif strcmpi('beta', tmp)
-            beta = varargin(k + 1);
+            beta = varargin{k + 1};
         elseif strcmpi('gamma', tmp)
-            gamma = varargin(k + 1);
+            gamma = varargin{k + 1};
         elseif strcmpi('kNN', tmp)
-            kNN = varargin(k + 1);
+            kNN = varargin{k + 1};
         elseif strcmpi('kNNweights', tmp)
-            kNNweights = varargin(k + 1);
+            kNNweights = varargin{k + 1};
         elseif strcmpi('delta', tmp)
-            delta = varargin(k + 1);
+            delta = varargin{k + 1};
         elseif strcmpi('maxIter', tmp)
-            maxIter = varargin(k + 1);
+            maxIter = varargin{k + 1};
         else
             error('Wrong argument name "%s" in name value pair %d', tmp, k);
         end
@@ -216,7 +216,7 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
         elseif ismatrix(delta) && size(delta, 1) == nClass...
                 && size(delta, 2) == nClass
             % now we need to check positivity of upper diagonal matrix
-            tmp = sum(triu(delta, 1) > 0);
+            tmp = sum(triu(delta, 1) > 0, 'all');
             if tmp ~= nClass * (nClass - 1) / 2
                 ind = true;
             end
@@ -323,14 +323,14 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
                 [dist, ind] = sort(dist, 2);
                 % Get kNN element
                 kNNDist(k:kk, :) = - gamma * kNNweights(dist(:, 2:kNN + 1));
-                kNNs(k:kk, :) = ind(2:kNN + 1);
+                kNNs(k:kk, :) = ind(:, 2:kNN + 1);
                 % Correct wYY
                 wYY(k:kk) = wYY(k:kk) + sum(kNNDist(k:kk, :), 2);
                 % Add summand to Q2
                 nS = kk - k + 1;
                 tmp = zeros(nS, nX);
-                tmp(sub2ind(size(tmp),repmat((1:nS)', 1, kNN),ind)) = kNNDist(k:kk, :);
-                tmp = Y(k:kk, :) * tmp * X;
+                tmp(sub2ind(size(tmp),repmat((1:nS)', 1, kNN), ind(:, 2:kNN + 1))) = kNNDist(k:kk, :);
+                tmp = Y(k:kk, :)' * tmp * X;
                 Q2 = Q2 + tmp + tmp';
                 % Shift k in Y
                 k = kk + 1;
@@ -352,6 +352,12 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
         [V, D] = eigs(Q, nComp, 'largestreal');
         % Normalise eigenvalues
         D = diag(D) / sum(diag(Q));
+        % Sort eigenvalues
+        [D, ind] = sort(D, 'descend');
+        V = V(:, ind);
+        % Standardise direction
+        ind = V(1, :) < 0;
+        V(ind, :) = - V(ind, :);
         % Calculate projection
         PX = X * V;
         if useY
@@ -359,10 +365,12 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
         else
             PY = [];
         end
+        iterNum = iterNum + 1;
         if iterNum == maxIter || ~useY
             break;
         end
     end
+    fprintf('Nuber of iterations %d\n', iterNum);
 end
 
 function weights = uniformWeights(distances)
