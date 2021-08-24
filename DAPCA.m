@@ -61,6 +61,10 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
 %       'maxIter', positive integer number is maximal number of itterations
 %           for iterative DAPCA.
 %           Default value is 5.
+%       'verbose', 'none' means suppress all messages exclude errors,
+%           'warning' means communicate the errors and warnings, 'all'
+%           means add messages about number of used itteretions.
+%           Default value is 'Warning'.
 %
 % Outputs:
 %   V is d-by-nComp matrix with one PCom is each column.
@@ -70,10 +74,10 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
 %   PY is m-by-nComp matrix of projections of Y onto nComp PComs.
 %
 %   Data matrices X and Y MUST be complete: usage of NaN is forbidden. To
-%   impute missing values you can use any appropriate methods. For example
+%   impute missing values you can use any appropriate methods. For example,
 %   you can use kNNImpute or svdWithGaps from the Github repository
 %   https://github.com/Mirkes/DataImputation.
-%   Rows with NaN valuse will be removed.
+%   Rows with NaN values will be removed.
 
     % Sanity check of positional arguments
     % Type of X
@@ -83,12 +87,14 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
     % Type of labels is arbitrary. Nothing to check. Convert to column
     % vector.
     labels = labels(:);
+    % For warnings
+    warn = {};
     % Remove NaNs from X
     ind = sum(isnan(X), 2);
     ind = ind > 0;
     if sum(ind) > 0 
-        warning(['Matrix X contains %d rows with missing values.',...
-            'All these rows were deleted'],sum(ind));
+        warn = [warn {sprintf(['Matrix X contains %d rows with missing values.',...
+            'All these rows were deleted'],sum(ind))}];
         X(ind, :) = [];
         labels(ind) = [];
     end
@@ -115,7 +121,7 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
     end
     useY = true;
     if isempty(Y)
-        warning('Since matrix Y is empty the SPCA is used');
+        warn = [warn {'Since matrix Y is empty the SPCA is used'}];
         useY = false;
     else
         [nY, k] = size(Y);
@@ -137,6 +143,7 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
     kNNweights = @uniformWeights;
     delta = ones(nClass);
     maxIter = 5;
+    verbose = 'warning';
     % Loop of arguments
     for k = 1:2:length(varargin)
         tmp = varargin{k};
@@ -157,6 +164,8 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
             delta = varargin{k + 1};
         elseif strcmpi('maxIter', tmp)
             maxIter = varargin{k + 1};
+        elseif strcmpi('verbose', tmp)
+            verbose = varargin{k + 1};
         else
             error('Wrong argument name "%s" in name value pair %d', tmp, k);
         end
@@ -233,7 +242,32 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
         error(['maxIter is maximal number of itterations for iterative',...
             ' DAPCA and must  be positive integer value']);
     end
-
+    tmp = false;
+    if isstring(verbose) || ischar(verbose)
+        if strcmpi('none', verbose)
+            verbose = 1;
+        elseif strcmpi('warning', verbose)
+            verbose = 2;
+        elseif strcmpi('all', verbose)
+            verbose = 3;
+        else
+            tmp = true;
+        end
+    else
+        tmp = true;
+    end
+    if tmp 
+        error(strcat("Argument 'verbose' must be 'none' (means suppress",...
+            " all messages exclude errors), 'warning' (means communicate",...
+            " the errors and warnings), or 'all' (means add messages",...
+            " about number of used itteretions)."));
+    end
+    if ~isempty(warn) && verbose > 1
+        for k = 1:length(warn)
+            warning(warn{k});
+        end
+    end
+    
     % Calculate number of cases of each class n_i and means for classes
     % mu_i formula (6)?
     cnt = zeros(nClass, 1);
@@ -370,7 +404,9 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
             break;
         end
     end
-    fprintf('Nuber of iterations %d\n', iterNum);
+    if verbose > 2
+        fprintf('Nuber of iterations %d\n', iterNum);
+    end
 end
 
 function weights = uniformWeights(distances)
