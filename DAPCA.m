@@ -356,7 +356,7 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
         [D, ind] = sort(D, 'descend');
         V = V(:, ind);
         % Standardise direction
-        ind = V(1, :) < 0;
+        ind = sum(V) < 0;
         V(ind, :) = - V(ind, :);
         % Calculate projection
         PX = X * V;
