@@ -267,7 +267,9 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
             warning(warn{k});
         end
     end
-    
+    % Reoder labels and X in oreder of labels
+    [labels, ind] = sort(labels);
+    X = X(ind, :);
     % Calculate number of cases of each class n_i and means for classes
     % mu_i formula (6)?
     cnt = zeros(nClass, 1);
