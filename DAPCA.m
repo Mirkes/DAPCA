@@ -36,7 +36,7 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
 %       'gamma', positive real number is attraction between projection of
 %           unlabelled point and k nearest labelled neighbours.
 %           Default value is 0.4.
-%       'kNN', positive integer number is number of labelled nearest
+%       'kNN', non-negative integer number is number of labelled nearest
 %           neighbours to use for attraction of each unlabbeled data point.
 %           Default value 1.
 %       'kNNweights', 'Uniform' required usage of the same weghts for all k
@@ -61,6 +61,8 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
 %       'maxIter', positive integer number is maximal number of itterations
 %           for iterative DAPCA.
 %           Default value is 5.
+%       'TCA', positive real number is attraction coefficient for Transfer
+%           Component Analysis. TCA ignores DAPCA and usage of gamma.
 %       'verbose', 'none' means suppress all messages exclude errors,
 %           'warning' means communicate the errors and warnings, 'all'
 %           means add messages about number of used itteretions.
@@ -143,6 +145,7 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
     kNNweights = @uniformWeights;
     delta = ones(nClass);
     maxIter = 5;
+    tca = 0;
     verbose = 'warning';
     % Loop of arguments
     for k = 1:2:length(varargin)
@@ -164,6 +167,8 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
             delta = varargin{k + 1};
         elseif strcmpi('maxIter', tmp)
             maxIter = varargin{k + 1};
+        elseif strcmpi('TCA', tmp)
+            tca = varargin{k + 1};
         elseif strcmpi('verbose', tmp)
             verbose = varargin{k + 1};
         else
@@ -242,6 +247,17 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
         error(['maxIter is maximal number of itterations for iterative',...
             ' DAPCA and must  be positive integer value']);
     end
+    if ~isnumeric(tca) || ~isscalar(tca) || tca < 0
+        error(['Argument TCA must be positive real number which is',...
+            ' attraction coefficient for Transfer Component Analysis.']);
+    end
+    if tca > 0
+        if ~useY
+            error('To use TCA it is necessary to specify Y matrix');
+        end
+        warn = [warn, {'TCA is used and DAPCA parameters are ignored'}];
+    end 
+    % Check verbose
     tmp = false;
     if isstring(verbose) || ischar(verbose)
         if strcmpi('none', verbose)
@@ -268,7 +284,7 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
         end
     end
     % Reoder labels and X in oreder of labels
-    [labels, ind] = sort(labels);
+    [~, ind] = sort(labels);
     X = X(ind, :);
     % Calculate number of cases of each class n_i and means for classes
     % mu_i formula (6)?
@@ -281,6 +297,9 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
     end
     if useY
         meanY = sum(Y);
+        if tca > 0
+            meanX = mean(X);
+        end
     end
     % Convert matrix delta to full matrix with -alpha on diagonal and delta
     % off diagonal and with normalisation by number of elements in each
@@ -307,6 +326,10 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
     % Y part
     if useY
         constQ = beta * (meanY' * meanY);
+        if tca > 0
+            meanX = meanX - meanY / nY;
+            constQ = constQ + tca * (meanX' * meanX);
+        end
     else
         constQ = zeros(d);
     end
@@ -322,7 +345,7 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
     end    
     
     % Now we are ready for iterations.
-    if useY
+    if useY && tca == 0
         kNNs = zeros(nY, kNN);
         kNNDist = kNNs;
         % estimate step of Y records to calculate distances to all X records
@@ -338,15 +361,15 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
     iterNum = 0;
     while true
         wXX = wX;
+        wYY = wY;
         Q2 = constQ;
-        if useY
+        if useY && tca == 0
             % Remember old kNNs
             oldkNN = kNNs;
             % Calculate new kNNs
             % calculate squared length of X vectors
             PX2 = sum(PX .^ 2, 2)';
             k = 1;
-            wYY = wY;
             while k <= nY
                 % Define end of fragment
                 kk = k + maxY;
@@ -402,7 +425,7 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
             PY = [];
         end
         iterNum = iterNum + 1;
-        if iterNum == maxIter || ~useY
+        if iterNum == maxIter || ~useY || tca > 0
             break;
         end
     end
