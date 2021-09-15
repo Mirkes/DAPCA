@@ -410,12 +410,15 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
         % Full amtrix is
         Q = Q1 - Q2;
         % Calculate principal components.
-        [V, D] = eigs(Q, nComp, 'largestreal');
+        [V, D] = eig(Q);
         % Normalise eigenvalues
         D = diag(D) / sum(diag(Q));
         % Sort eigenvalues
         [D, ind] = sort(D, 'descend');
         V = V(:, ind);
+        % Save the first nComp elements only
+        D = D(1:nComp);
+        V = V(:, 1:nComp);
         % Standardise direction
         ind = sum(V) < 0;
         V(ind, :) = - V(ind, :);
