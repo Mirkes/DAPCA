@@ -361,7 +361,9 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
     iterNum = 0;
     while true
         wXX = wX;
-        wYY = wY;
+        if useY
+            wYY = wY;
+        end
         Q2 = constQ;
         if useY && tca == 0
             % Remember old kNNs
@@ -381,14 +383,14 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
                 % Search NN
                 [dist, ind] = sort(dist, 2);
                 % Get kNN element
-                kNNDist(k:kk, :) = - gamma * kNNweights(dist(:, 2:kNN + 1));
-                kNNs(k:kk, :) = ind(:, 2:kNN + 1);
+                kNNDist(k:kk, :) = - gamma * kNNweights(dist(:, 1:kNN));
+                kNNs(k:kk, :) = ind(:, 1:kNN);
                 % Correct wYY
                 wYY(k:kk) = wYY(k:kk) + sum(kNNDist(k:kk, :), 2);
                 % Add summand to Q2
                 nS = kk - k + 1;
                 tmp = zeros(nS, nX);
-                tmp(sub2ind(size(tmp),repmat((1:nS)', 1, kNN), ind(:, 2:kNN + 1))) = kNNDist(k:kk, :);
+                tmp(sub2ind(size(tmp),repmat((1:nS)', 1, kNN), ind(:, 1:kNN))) = kNNDist(k:kk, :);
                 tmp = Y(k:kk, :)' * tmp * X;
                 Q2 = Q2 + tmp + tmp';
                 % Shift k in Y
