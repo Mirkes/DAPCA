@@ -70,8 +70,7 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
 %
 % Outputs:
 %   V is d-by-nComp matrix with one PCom is each column.
-%   D is nComp-by-1 vector with the greatest nComp normalised eigenvalues:
-%       eigenvalues divided by sum of all eigenvalues.
+%   D is nComp-by-1 vector with the greatest nComp eigenvalues.
 %   PX is n-by-nComp matrix of projections of X onto nComp PComs.
 %   PY is m-by-nComp matrix of projections of Y onto nComp PComs.
 %
@@ -411,8 +410,8 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
         Q = Q1 - Q2;
         % Calculate principal components.
         [V, D] = eig(Q);
-        % Normalise eigenvalues
-        D = diag(D) / sum(diag(Q));
+        % Get eigenvalues
+        D = diag(D); 
         % Sort eigenvalues
         [D, ind] = sort(D, 'descend');
         V = V(:, ind);
@@ -421,7 +420,7 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
         V = V(:, 1:nComp);
         % Standardise direction
         ind = sum(V) < 0;
-        V(ind, :) = - V(ind, :);
+        V(:, ind) = - V(:, ind);
         % Calculate projection
         PX = X * V;
         if useY
