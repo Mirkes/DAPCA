@@ -1,5 +1,6 @@
 import numpy as np
 import warnings
+import numbers
 
 
 def sub2ind(array_shape, rows, cols):
@@ -167,7 +168,7 @@ def DAPCA(
     if delta is None:
         delta = np.ones((nClass,nClass))
 
-    if type(alpha) == int:
+    if isinstance(alpha, numbers.Number):
         alpha = alpha * np.ones((nClass, 1))
     else:
         if len(alpha) != nClass:
