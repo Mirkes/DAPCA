@@ -191,6 +191,7 @@ def DAPCA(
                 " be positive integer value",
             ]
         )
+    kNNs = None
 
     if type(kNNweights) == str:
         if "uniform" == kNNweights:
@@ -255,7 +256,7 @@ def DAPCA(
         )
 
     if tca > 0:
-        if ~useY:
+        if not useY:
             raise ValueError("To use TCA it is necessary to specify Y matrix")
 
         warnings.warn("TCA is used and DAPCA parameters are ignored")
@@ -437,7 +438,7 @@ def DAPCA(
     if verbose > 2:
         print(f"Number of iterations {iterNum}\n")
 
-    return V, D, PX, PY
+    return V, D, PX, PY, kNNs
 
 
 def uniformWeights(distances):
@@ -451,3 +452,88 @@ def distProp(distances):
     weights = distances / np.max(distances, 1)
     return weights
 
+
+def calc_selfconsistency(X,labels,Y,alpha=10,gamma=0.001,beta=1,maxIter=30,num_comps=1,plot=False,nbins=30):
+    [V1, D1, PX, PY, kNNs] = DAPCA(X, labels, num_comps,  Y=Y, alpha=alpha, gamma=gamma,maxIter=maxIter,beta=beta)
+    if plot:
+        rng = (np.min((np.min(PX[:,0]),np.min(PY[:,0]))),np.max((np.max(PX[:,0]),np.max(PY[:,0]))))
+        unique_labels = list(set(labels))
+        if PX.shape[1]==1:
+            for l in unique_labels:
+                inds = np.where(labels==l)[0]
+                plt.hist(PX[inds],bins=nbins,alpha=0.5,range=rng,label=str(l))
+            plt.hist(PY[:,0],bins=nbins,color='grey',alpha=0.5,range=rng,label='Y')
+        else:
+            for l in unique_labels:
+                inds = np.where(labels==l)[0]
+                plt.scatter(PX[inds,0],PX[inds,1],s=5,label=str(l))
+            plt.scatter(PY[:,0],PY[:,1],c='k',s=5,alpha=0.5,label='Y')
+            plt.axis('equal')
+        plt.legend()
+        plt.title('DAPC1 direct')
+        plt.show()
+        
+    predicted_labels = kNN_predict(labels,kNNs)
+    [V1_inv, D1_inv, PY_inv, PX_inv, kNNs_inv] = DAPCA(Y, predicted_labels, num_comps,  Y=X, alpha=alpha, gamma=gamma,maxIter=maxIter, beta=beta)
+    
+    if plot:
+        rng = (np.min((np.min(PX[:,0]),np.min(PY[:,0]))),np.max((np.max(PX[:,0]),np.max(PY[:,0]))))
+        unique_labels = list(set(labels))
+        unique_predicted_labels = list(set(predicted_labels))        
+        if PX.shape[1]==1:
+            for l in unique_labels:
+                inds = np.where(labels==l)[0]
+                plt.hist(PX[inds],bins=nbins,alpha=0.5,range=rng,label=str(l))
+            for l in unique_predicted_labels:
+                inds = np.where(labels==l)[0]
+                plt.hist(PY[inds],bins=nbins,alpha=0.5,range=rng,label=str(l)+'_pr')
+        else:
+            for l in unique_labels:
+                inds = np.where(labels==l)[0]
+                plt.scatter(PX[inds,0],PX[inds,1],s=5,label=str(l))
+            for l in unique_predicted_labels:
+                inds = np.where(labels==l)[0]
+                plt.scatter(PY[inds,0],PY[inds,1],s=5,label=str(l)+'_pr')
+            plt.axis('equal')
+        plt.legend()
+        plt.title('DAPC1 predictions')
+        plt.show()
+    
+    
+    if plot:
+        rng = (np.min((np.min(PX_inv[:,0]),np.min(PY_inv[:,0]))),np.max((np.max(PX_inv[:,0]),np.max(PY_inv[:,0]))))
+        unique_predicted_labels = list(set(predicted_labels))
+        if PX_inv.shape[1]==1:
+            for l in unique_labels:
+                inds = np.where(labels==l)[0]
+                plt.hist(PX_inv[inds],bins=nbins,alpha=0.5,range=rng,label=str(l))            
+            for l in unique_predicted_labels:
+                inds = np.where(labels==l)[0]
+                plt.hist(PY_inv[inds],bins=nbins,alpha=0.5,range=rng,label=str(l)+'_pr')
+        else:
+            for l in unique_labels:
+                inds = np.where(labels==l)[0]
+                plt.scatter(PX_inv[inds,0],PX_inv[inds,1],s=5,label=str(l))
+            for l in unique_predicted_labels:
+                inds = np.where(labels==l)[0]
+                plt.scatter(PY_inv[inds,0],PY_inv[inds,1],s=5,label=str(l)+'_pr')
+            plt.axis('equal')
+        plt.legend()
+        plt.title('DAPC1 inverse')
+        plt.show()
+    
+    predicted_labels_inv = kNN_predict(predicted_labels,kNNs_inv)
+    return [accuracy_score(labels, predicted_labels_inv),predicted_labels,kNNs,kNNs_inv]
+
+from collections import Counter
+
+def kNN_predict(labels,kNNs):
+    predictions = np.ones(len(kNNs))
+    for i,k in enumerate(kNNs):
+        cnt = Counter()
+        for p in k:
+            pi = int(p)
+            lbl = int(labels[pi])
+            cnt[lbl]+=1
+        predictions[i] = cnt.most_common(1)[0][0]
+    return np.array(predictions)
