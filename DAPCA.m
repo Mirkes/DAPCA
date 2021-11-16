@@ -1,4 +1,4 @@
-function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
+function [V, D, PX, PY] = DAPCA(XX, labels, YY, nComp, varargin)
 % DAPCA calculated Domain Adaptation Principal Components (DAPCA) or,
 % if matrix Y is empty, Supervised principal components (SPCA) for problem
 % of classification. Detailed description of these types of principal
@@ -13,12 +13,12 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
 %           [V, D, PX, PY] = DAPCA(X, Labels, Y, nComp, Name, Value)
 %
 % Inputs:
-%   X is n-by-d labelled data matrix. Each row of matrix contains one
+%   XX is n-by-d labelled data matrix. Each row of matrix contains one
 %       observation (case, record, object, instance).
 %   labels is n-by-1 vector of labels. Each unique value is considered as
 %       one class. Number of classes nClass is equal to number of unique
 %       values in array labels.
-%   Y is m-by-d unlabelled data matrix. Each row of matrix contains one
+%   YY is m-by-d unlabelled data matrix. Each row of matrix contains one
 %       observation (case, record, object, instance).
 %   nComp is number of required PComs and must be positive integer number
 %       less than d.
@@ -71,8 +71,8 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
 % Outputs:
 %   V is d-by-nComp matrix with one PCom is each column.
 %   D is nComp-by-1 vector with the greatest nComp eigenvalues.
-%   PX is n-by-nComp matrix of projections of X onto nComp PComs.
-%   PY is m-by-nComp matrix of projections of Y onto nComp PComs.
+%   PX is n-by-nComp matrix of projections of XX onto nComp PComs.
+%   PY is m-by-nComp matrix of projections of YY onto nComp PComs.
 %
 %   Data matrices X and Y MUST be complete: usage of NaN is forbidden. To
 %   impute missing values you can use any appropriate methods. For example,
@@ -80,6 +80,9 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
 %   https://github.com/Mirkes/DataImputation.
 %   Rows with NaN values will be removed.
 
+    % Create copy of XX and YY
+    X = XX;
+    Y = YY;
     % Sanity check of positional arguments
     % Type of X
     if ~isnumeric(X) || ~ismatrix(X)
@@ -435,6 +438,13 @@ function [V, D, PX, PY] = DAPCA(X, labels, Y, nComp, varargin)
     end
     if verbose > 2
         fprintf('Nuber of iterations %d\n', iterNum);
+    end
+    %Final calculation of PX and PY
+    PX = XX * V;
+    if useY
+        PY = YY * V;
+    else
+        PY = [];
     end
 end
 
