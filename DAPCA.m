@@ -398,7 +398,9 @@ function [V, D, PX, PY] = DAPCA(XX, labels, YY, nComp, varargin)
                 % Shift k in Y
                 k = kk + 1;
             end
-            wXX = wXX + sum(kNNDist, 1);
+            % Correct wXX by adding elements of kNNDist with indices kNNs
+            % to corresponding elements of wXX
+            wXX = wXX + accumarray(kNNs(:), kNNDist(:), [nX, 1]);
             if all(oldkNN == kNNs)
                 break;
             end
@@ -438,6 +440,13 @@ function [V, D, PX, PY] = DAPCA(XX, labels, YY, nComp, varargin)
     end
     if verbose > 2
         fprintf('Nuber of iterations %d\n', iterNum);
+    end
+    if verbose >1
+        % Check do we have any negative eigenvalues.
+        ind = find(D < 0);
+        if ~isempty(ind) 
+            warning("All eigenvalues starting from %d% are negative", ind(1));
+        end
     end
     %Final calculation of PX and PY
     PX = XX * V;
