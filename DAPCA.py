@@ -8,10 +8,10 @@ def sub2ind(array_shape, rows, cols):
 
 
 def DAPCA(
-    X,
+    XX,
     labels,
     nComp,
-    Y=None,
+    YY=None,
     alpha=None,
     beta=0.9,
     gamma=0.4,
@@ -35,12 +35,12 @@ def DAPCA(
     or
               [V, D, PX, PY] = DAPCA(X, Labels, Y, nComp, Name, Value)
     Inputs:
-      X is n-by-d labelled data matrix. Each row of matrix contains one
+      XX is n-by-d labelled data matrix. Each row of matrix contains one
           observation (case, record, object, instance).
       labels is n-by-1 vector of labels. Each unique value is considered as
           one class. Number of classes nClass is equal to number of unique
           values in array labels.
-      Y is m-by-d unlabelled data matrix. Each row of matrix contains one
+      YY is m-by-d unlabelled data matrix. Each row of matrix contains one
           observation (case, record, object, instance).
       nComp is number of required PComs and must be positive integer number
           less than d.
@@ -100,10 +100,17 @@ def DAPCA(
       https://github.com/Mirkes/DataImputation.
       Rows with NaN values will be removed.
     """
-
+    # Crete copy of XX and YY
+    X = XX.copy()
+    if YY is not None:
+        Y = YY.copy()
+    else:
+        Y = None
     # Sanity check of positional arguments
     # Type of X
-    if ~np.isin(str(X.dtype), ['float64', 'float32', 'int32', 'int64']) or (len(X.shape) != 2):
+    if ~np.isin(str(X.dtype), ["float64", "float32", "int32", "int64"]) or (
+        len(X.shape) != 2
+    ):
         raise ValueError("the first argument must be numerical matrix")
 
     # Type of labels is arbitrary. Nothing to check. Convert to column
@@ -166,7 +173,7 @@ def DAPCA(
     if alpha is None:
         alpha = np.zeros((nClass, 1))
     if delta is None:
-        delta = np.ones((nClass,nClass))
+        delta = np.ones((nClass, nClass))
 
     if isinstance(alpha, numbers.Number):
         alpha = alpha * np.ones((nClass, 1))
@@ -203,12 +210,12 @@ def DAPCA(
 
     # do we have raise ValueError?
     ind = False
-    if (type(delta)==int) or (type(delta)==float) and (delta > 0):
-        delta = delta * np.ones((nClass,nClass))
+    if (type(delta) == int) or (type(delta) == float) and (delta > 0):
+        delta = delta * np.ones((nClass, nClass))
 
-    elif (type(delta) == np.ndarray) and (len(delta.shape)==1) and np.all(delta > 0):
+    elif (type(delta) == np.ndarray) and (len(delta.shape) == 1) and np.all(delta > 0):
         # Form matrix
-        tmp = np.zeros((nClass,nClass))
+        tmp = np.zeros((nClass, nClass))
         for k in range(nClass):
             for kk in range(k + 1, nClass):
                 tmp[k, kk] = np.abs(delta[k] - delta[kk])
@@ -225,7 +232,6 @@ def DAPCA(
         tmp = np.sum(np.triu(delta, 1) > 0)
         if tmp != (nClass * (nClass - 1) / 2):
             ind = True
-
 
     else:
         ind = True
@@ -284,9 +290,8 @@ def DAPCA(
             + " about number of used iterations)."
         )
 
-
     # Reorder labels and X in order of labels
-    ind = np.argsort(labels.flat,kind='mergesort')
+    ind = np.argsort(labels.flat, kind="mergesort")
     X = X[ind, :]
     # Calculate number of cases of each class n_i and means for classes
     # mu_i formula (6)?
@@ -295,12 +300,12 @@ def DAPCA(
     for k in range(nClass):
         ind = labNum == k
         cnt[k] = np.sum(ind)
-        means[k, :] = np.sum(X[ind, :], 0,keepdims=1)
+        means[k, :] = np.sum(X[ind, :], 0, keepdims=1)
 
     if useY:
-        meanY = np.sum(Y, 0,keepdims=1)
+        meanY = np.sum(Y, 0, keepdims=1)
         if tca > 0:
-            meanX = np.mean(X, 0,keepdims=1)
+            meanX = np.mean(X, 0, keepdims=1)
 
     # Convert matrix delta to full matrix with -alpha on diagonal and delta
     # off diagonal and with normalisation by number of elements in each
@@ -317,7 +322,7 @@ def DAPCA(
     # Calculation of constant parts of sum of weights vectors. Formulae
     # (13) and (10)
     tmp = delta @ cnt
-    wX = np.repeat(tmp, cnt.astype(int).flat,axis=0)
+    wX = np.repeat(tmp, cnt.astype(int).flat, axis=0)
     if useY:
         wY = np.tile(nY * beta, (nY, 1))
 
@@ -330,7 +335,7 @@ def DAPCA(
             constQ = constQ + tca * (meanX.T @ meanX)
 
     else:
-        constQ = np.zeros((d,d))
+        constQ = np.zeros((d, d))
 
     # X Part
     for k in range(nClass):
@@ -343,8 +348,8 @@ def DAPCA(
 
     # Now we are ready for iterations.
     if useY and (tca == 0):
-        kNNs = np.zeros((nY, kNN))
-        kNNDist = kNNs.copy()
+        kNNs = np.zeros((nY, kNN), dtype=int)
+        kNNDist = kNNs.astype(float)
         # estimate step of Y records to calculate distances to all X records
         maxY = np.floor(1e8 / nX)
         if maxY > nY:
@@ -367,7 +372,7 @@ def DAPCA(
             oldkNN = kNNs.copy()
             # Calculate new kNNs
             # calculate squared len of X vectors
-            PX2 = np.sum(PX ** 2, 1,keepdims=1).T
+            PX2 = np.sum(PX ** 2, 1, keepdims=1).T
             k = 1
             while k <= nY:
                 # Define  of fragment
@@ -376,31 +381,46 @@ def DAPCA(
                     kk = nY
 
                 # Calculate distances
-                dist = np.sum(PY[k - 1 : kk, :] ** 2, 1,keepdims=1) + PX2 - 2 * PY[k - 1 :kk, :] @ PX.T
+                dist = (
+                    np.sum(PY[k - 1 : kk, :] ** 2, 1, keepdims=1)
+                    + PX2
+                    - 2 * PY[k - 1 : kk, :] @ PX.T
+                )
                 # Search NN
-                ind = np.argsort(dist, 1, kind='mergesort')
-                dist = dist[np.arange(len(dist))[:,None],ind]
+                ind = np.argsort(dist, 1, kind="mergesort")
+                dist = dist[np.arange(len(dist))[:, None], ind]
                 # Get kNN element
                 kNNDist[k - 1 : kk, :] = -gamma * kNNweights(dist[:, :kNN])
                 kNNs[k - 1 : kk, :] = ind[:, :kNN]
                 # Correct wYY
-                wYY[k - 1 : kk] = wYY[k - 1 : kk] + np.sum(kNNDist[k - 1 : kk, :], 1,keepdims=1)
+                wYY[k - 1 : kk] = wYY[k - 1 : kk] + np.sum(
+                    kNNDist[k - 1 : kk, :], 1, keepdims=1
+                )
                 # Add summand to Q2
                 nS = kk - k + 1
                 tmp = np.zeros((nS, nX))
-                #tmp[
+                # tmp[
                 #    sub2ind(
                 #        tmp.shape,
                 #        np.tile(np.arange(nS)[:, None], (1, kNN)),
                 #        ind[:, :kNN],
                 #    )
-                tmp[np.tile(np.arange(nS)[:, None], (1, kNN)),ind[:, :kNN]] = kNNDist[k - 1 :kk, :]
+                tmp[np.tile(np.arange(nS)[:, None], (1, kNN)), ind[:, :kNN]] = kNNDist[
+                    k - 1 : kk, :
+                ]
                 tmp = Y[k - 1 : kk, :].T @ tmp @ X
                 Q2 = Q2 + tmp + tmp.T
                 # Shift k in Y
                 k = kk + 1
 
-            wXX = wXX + np.sum(kNNDist, 0,keepdims=1)
+            # Correct wXX by adding elements of kNNDist with indices kNNs
+            # to corresponding elements of wXX
+            # wXX = wXX + np.sum(kNNDist, 0, keepdims=1)
+            wXX = wXX + np.bincount(
+                kNNs.flatten(order="F"),
+                weights=kNNDist.flatten(order="F"),
+                minlength=nX,
+            ).reshape(-1, 1)
             if np.all(oldkNN == kNNs):
                 break
 
@@ -415,7 +435,7 @@ def DAPCA(
         # Calculate principal components.
         D, V = np.linalg.eig(Q)
         # Sort eigenvalues
-        ind = np.argsort(D,axis=0,kind='mergesort')[::-1]
+        ind = np.argsort(D, axis=0, kind="mergesort")[::-1]
         D = D[ind]
         V = V[:, ind]
         # Save the first nComp elements only
@@ -432,12 +452,24 @@ def DAPCA(
             PY = np.array([])
 
         iterNum = iterNum + 1
-        if (iterNum == maxIter) or not(useY) or (tca > 0):
+        if (iterNum == maxIter) or not (useY) or (tca > 0):
             break
 
     if verbose > 2:
         print(f"Number of iterations {iterNum}\n")
+    if verbose > 1:
+        # Check do we have any negative eigenvalues.
+        ind = D < 0
+        if np.sum(ind) > 0:
+            ind = np.where(ind)[0][0]
+            warnings.warn(f"All eigenvalues starting from {ind} are negative")
 
+    # Final calculation of PX and PY
+    PX = XX @ V
+    if useY:
+        PY = YY @ V
+    else:
+        PY = np.array([])
     return V, D, PX, PY, kNNs
 
 
@@ -453,87 +485,130 @@ def distProp(distances):
     return weights
 
 
-def calc_selfconsistency(X,labels,Y,alpha=10,gamma=0.001,beta=1,maxIter=30,num_comps=1,plot=False,nbins=30):
-    [V1, D1, PX, PY, kNNs] = DAPCA(X, labels, num_comps,  Y=Y, alpha=alpha, gamma=gamma,maxIter=maxIter,beta=beta)
+def calc_selfconsistency(
+    X,
+    labels,
+    Y,
+    alpha=10,
+    gamma=0.001,
+    beta=1,
+    maxIter=30,
+    num_comps=1,
+    plot=False,
+    nbins=30,
+):
+    [V1, D1, PX, PY, kNNs] = DAPCA(
+        X, labels, num_comps, Y=Y, alpha=alpha, gamma=gamma, maxIter=maxIter, beta=beta
+    )
     if plot:
-        rng = (np.min((np.min(PX[:,0]),np.min(PY[:,0]))),np.max((np.max(PX[:,0]),np.max(PY[:,0]))))
+        rng = (
+            np.min((np.min(PX[:, 0]), np.min(PY[:, 0]))),
+            np.max((np.max(PX[:, 0]), np.max(PY[:, 0]))),
+        )
         unique_labels = list(set(labels))
-        if PX.shape[1]==1:
+        if PX.shape[1] == 1:
             for l in unique_labels:
-                inds = np.where(labels==l)[0]
-                plt.hist(PX[inds],bins=nbins,alpha=0.5,range=rng,label=str(l))
-            plt.hist(PY[:,0],bins=nbins,color='grey',alpha=0.5,range=rng,label='Y')
+                inds = np.where(labels == l)[0]
+                plt.hist(PX[inds], bins=nbins, alpha=0.5, range=rng, label=str(l))
+            plt.hist(
+                PY[:, 0], bins=nbins, color="grey", alpha=0.5, range=rng, label="Y"
+            )
         else:
             for l in unique_labels:
-                inds = np.where(labels==l)[0]
-                plt.scatter(PX[inds,0],PX[inds,1],s=5,label=str(l))
-            plt.scatter(PY[:,0],PY[:,1],c='k',s=5,alpha=0.5,label='Y')
-            plt.axis('equal')
+                inds = np.where(labels == l)[0]
+                plt.scatter(PX[inds, 0], PX[inds, 1], s=5, label=str(l))
+            plt.scatter(PY[:, 0], PY[:, 1], c="k", s=5, alpha=0.5, label="Y")
+            plt.axis("equal")
         plt.legend()
-        plt.title('DAPC1 direct')
+        plt.title("DAPC1 direct")
         plt.show()
-        
-    predicted_labels = kNN_predict(labels,kNNs)
-    [V1_inv, D1_inv, PY_inv, PX_inv, kNNs_inv] = DAPCA(Y, predicted_labels, num_comps,  Y=X, alpha=alpha, gamma=gamma,maxIter=maxIter, beta=beta)
-    
+
+    predicted_labels = kNN_predict(labels, kNNs)
+    [V1_inv, D1_inv, PY_inv, PX_inv, kNNs_inv] = DAPCA(
+        Y,
+        predicted_labels,
+        num_comps,
+        Y=X,
+        alpha=alpha,
+        gamma=gamma,
+        maxIter=maxIter,
+        beta=beta,
+    )
+
     if plot:
-        rng = (np.min((np.min(PX[:,0]),np.min(PY[:,0]))),np.max((np.max(PX[:,0]),np.max(PY[:,0]))))
+        rng = (
+            np.min((np.min(PX[:, 0]), np.min(PY[:, 0]))),
+            np.max((np.max(PX[:, 0]), np.max(PY[:, 0]))),
+        )
         unique_labels = list(set(labels))
-        unique_predicted_labels = list(set(predicted_labels))        
-        if PX.shape[1]==1:
-            for l in unique_labels:
-                inds = np.where(labels==l)[0]
-                plt.hist(PX[inds],bins=nbins,alpha=0.5,range=rng,label=str(l))
-            for l in unique_predicted_labels:
-                inds = np.where(labels==l)[0]
-                plt.hist(PY[inds],bins=nbins,alpha=0.5,range=rng,label=str(l)+'_pr')
-        else:
-            for l in unique_labels:
-                inds = np.where(labels==l)[0]
-                plt.scatter(PX[inds,0],PX[inds,1],s=5,label=str(l))
-            for l in unique_predicted_labels:
-                inds = np.where(labels==l)[0]
-                plt.scatter(PY[inds,0],PY[inds,1],s=5,label=str(l)+'_pr')
-            plt.axis('equal')
-        plt.legend()
-        plt.title('DAPC1 predictions')
-        plt.show()
-    
-    
-    if plot:
-        rng = (np.min((np.min(PX_inv[:,0]),np.min(PY_inv[:,0]))),np.max((np.max(PX_inv[:,0]),np.max(PY_inv[:,0]))))
         unique_predicted_labels = list(set(predicted_labels))
-        if PX_inv.shape[1]==1:
+        if PX.shape[1] == 1:
             for l in unique_labels:
-                inds = np.where(labels==l)[0]
-                plt.hist(PX_inv[inds],bins=nbins,alpha=0.5,range=rng,label=str(l))            
+                inds = np.where(labels == l)[0]
+                plt.hist(PX[inds], bins=nbins, alpha=0.5, range=rng, label=str(l))
             for l in unique_predicted_labels:
-                inds = np.where(labels==l)[0]
-                plt.hist(PY_inv[inds],bins=nbins,alpha=0.5,range=rng,label=str(l)+'_pr')
+                inds = np.where(labels == l)[0]
+                plt.hist(
+                    PY[inds], bins=nbins, alpha=0.5, range=rng, label=str(l) + "_pr"
+                )
         else:
             for l in unique_labels:
-                inds = np.where(labels==l)[0]
-                plt.scatter(PX_inv[inds,0],PX_inv[inds,1],s=5,label=str(l))
+                inds = np.where(labels == l)[0]
+                plt.scatter(PX[inds, 0], PX[inds, 1], s=5, label=str(l))
             for l in unique_predicted_labels:
-                inds = np.where(labels==l)[0]
-                plt.scatter(PY_inv[inds,0],PY_inv[inds,1],s=5,label=str(l)+'_pr')
-            plt.axis('equal')
+                inds = np.where(labels == l)[0]
+                plt.scatter(PY[inds, 0], PY[inds, 1], s=5, label=str(l) + "_pr")
+            plt.axis("equal")
         plt.legend()
-        plt.title('DAPC1 inverse')
+        plt.title("DAPC1 predictions")
         plt.show()
-    
-    predicted_labels_inv = kNN_predict(predicted_labels,kNNs_inv)
-    return [accuracy_score(labels, predicted_labels_inv),predicted_labels,kNNs,kNNs_inv]
+
+    if plot:
+        rng = (
+            np.min((np.min(PX_inv[:, 0]), np.min(PY_inv[:, 0]))),
+            np.max((np.max(PX_inv[:, 0]), np.max(PY_inv[:, 0]))),
+        )
+        unique_predicted_labels = list(set(predicted_labels))
+        if PX_inv.shape[1] == 1:
+            for l in unique_labels:
+                inds = np.where(labels == l)[0]
+                plt.hist(PX_inv[inds], bins=nbins, alpha=0.5, range=rng, label=str(l))
+            for l in unique_predicted_labels:
+                inds = np.where(labels == l)[0]
+                plt.hist(
+                    PY_inv[inds], bins=nbins, alpha=0.5, range=rng, label=str(l) + "_pr"
+                )
+        else:
+            for l in unique_labels:
+                inds = np.where(labels == l)[0]
+                plt.scatter(PX_inv[inds, 0], PX_inv[inds, 1], s=5, label=str(l))
+            for l in unique_predicted_labels:
+                inds = np.where(labels == l)[0]
+                plt.scatter(PY_inv[inds, 0], PY_inv[inds, 1], s=5, label=str(l) + "_pr")
+            plt.axis("equal")
+        plt.legend()
+        plt.title("DAPC1 inverse")
+        plt.show()
+
+    predicted_labels_inv = kNN_predict(predicted_labels, kNNs_inv)
+    return [
+        accuracy_score(labels, predicted_labels_inv),
+        predicted_labels,
+        kNNs,
+        kNNs_inv,
+    ]
+
 
 from collections import Counter
 
-def kNN_predict(labels,kNNs):
+
+def kNN_predict(labels, kNNs):
     predictions = np.ones(len(kNNs))
-    for i,k in enumerate(kNNs):
+    for i, k in enumerate(kNNs):
         cnt = Counter()
         for p in k:
             pi = int(p)
             lbl = int(labels[pi])
-            cnt[lbl]+=1
+            cnt[lbl] += 1
         predictions[i] = cnt.most_common(1)[0][0]
     return np.array(predictions)
