@@ -291,8 +291,8 @@ def DAPCA(
         )
 
     # Reorder labels and X in order of labels
-    ind = np.argsort(labels.flat, kind="mergesort")
-    X = X[ind, :]
+    # ind = np.argsort(labels.flat, kind="mergesort")
+    # X = X[ind, :]
     # Calculate number of cases of each class n_i and means for classes
     # mu_i formula (6)?
     cnt = np.zeros((nClass, 1))
