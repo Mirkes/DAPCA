@@ -1,6 +1,31 @@
 import numpy as np
 import warnings
 import numbers
+import matplotlib.pyplot as plt
+from abc import ABC, abstractmethod
+from sklearn.neighbors import NearestNeighbors
+
+
+class YourCustomKNN(ABC):
+    """ Template class helper for custom knn """
+
+    def __init__(self, your_custom_param):
+        self.your_custom_param = your_custom_param
+
+    @abstractmethod
+    def fit(self, X):
+        """ (Optional) method to reduce computations by fitting reference points once before queries (as in sklearn NearestNeighbors)"""
+        self._fit(X)
+        return self
+
+    @abstractmethod
+    def kneighbors(self, Y, X=None):
+        """ Returns kNNs of each point of Y in X. 
+            dist, inds : sorted distances and indices of shape (len(Y) x kNN) """
+        if hasattr(self, "fit"):
+            dist, inds = self._kneighbors(Y)
+        else:
+            dist, inds = self._kneighbors(Y, X)
 
 
 def sub2ind(array_shape, rows, cols):
@@ -21,6 +46,7 @@ def DAPCA(
     maxIter=5,
     tca=0,
     verbose="warning",
+    knn_class_instance=None,
 ):
     """
     DAPCA calculated Domain Adaptation Principal Components (DAPCA) or,
@@ -89,6 +115,14 @@ def DAPCA(
               'warning' means communicate the raise ValueErrors and warnings, 'all'
               means add messages about number of used itteretions.
               Default value is 'Warning'.
+            'knn_class_instance', custom instantiated class for kNN search, which should have:
+                - Optional: a fit method returning the class instance (as in sklearn NearestNeighbors)'''
+                        your_knn_class_instance.fit(X)
+                - Required: a kneighbors method returning kNN dists, inds:
+                        your_knn_class_instance.kneighbors(Y) if the class has a fit method
+                        your_knn_class_instance.kneighbors(Y,X) if the class has no fit method
+                See DAPCA.YourCustomKNN for an example class template
+                        
     Outputs:
       V is d-by-nComp matrix with one PCom is each column.
       D is nComp-by-1 vector with the greatest nComp eigenvalues.
@@ -100,12 +134,17 @@ def DAPCA(
       https://github.com/Mirkes/DataImputation.
       Rows with NaN values will be removed.
     """
-    # Crete copy of XX and YY
+    # Create copy of XX and YY
     X = XX.copy()
     if YY is not None:
         Y = YY.copy()
     else:
         Y = None
+
+    # Create knn class instance if custom knn class not provided
+    if knn_class_instance is None:
+        knn_class_instance = NearestNeighbors(n_neighbors=kNN)
+
     # Sanity check of positional arguments
     # Type of X
     if ~np.isin(str(X.dtype), ["float64", "float32", "int32", "int64"]) or (
@@ -368,11 +407,13 @@ def DAPCA(
 
         Q2 = constQ.copy()
         if useY and (tca == 0):
+
             # Remember old kNNs
             oldkNN = kNNs.copy()
-            # Calculate new kNNs
-            # calculate squared len of X vectors
-            PX2 = np.sum(PX ** 2, 1, keepdims=1).T
+            # Calculate new kNNs - optionally fit class in advance if possible
+            if hasattr(knn_class_instance, "fit"):
+                knn_class_instance.fit(PX)
+
             k = 1
             while k <= nY:
                 # Define  of fragment
@@ -380,15 +421,16 @@ def DAPCA(
                 if kk > nY:
                     kk = nY
 
-                # Calculate distances
-                dist = (
-                    np.sum(PY[k - 1 : kk, :] ** 2, 1, keepdims=1)
-                    + PX2
-                    - 2 * PY[k - 1 : kk, :] @ PX.T
-                )
                 # Search NN
-                ind = np.argsort(dist, 1, kind="mergesort")
-                dist = dist[np.arange(len(dist))[:, None], ind]
+                if hasattr(knn_class_instance, "fit"):
+                    dist, ind = knn_class_instance.kneighbors(PY[k - 1 : kk, :])
+                else:
+                    dist, ind = knn_class_instance.kneighbors(PY[k - 1 : kk, :], PX)
+                if dist.shape[1] != kNN:
+                    raise ValueError(
+                        f"Custom kNN class returned a different number of NN than kNN={kNN} parameter"
+                    )
+
                 # Get kNN element
                 kNNDist[k - 1 : kk, :] = -gamma * kNNweights(dist[:, :kNN])
                 kNNs[k - 1 : kk, :] = ind[:, :kNN]
