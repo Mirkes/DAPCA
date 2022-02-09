@@ -47,6 +47,8 @@ def DAPCA(
     tca=0,
     verbose="warning",
     knn_class_instance=None,
+    n_jobs=-1,
+    eps = 1e-3
 ):
     """
     DAPCA calculated Domain Adaptation Principal Components (DAPCA) or,
@@ -143,7 +145,7 @@ def DAPCA(
 
     # Create knn class instance if custom knn class not provided
     if knn_class_instance is None:
-        knn_class_instance = NearestNeighbors(n_neighbors=kNN)
+        knn_class_instance = NearestNeighbors(n_neighbors=kNN,n_jobs=n_jobs)
 
     # Sanity check of positional arguments
     # Type of X
@@ -400,6 +402,7 @@ def DAPCA(
     PX = X
     # Start iterations
     iterNum = 0
+    HW_old = 1e10
     while True:
         wXX = wX.copy()
         if useY:
@@ -481,24 +484,35 @@ def DAPCA(
         D = D[ind]
         V = V[:, ind]
         # Save the first nComp elements only
-        D = D[:nComp]
-        V = V[:, :nComp]
+        #D = np.real(D[:nComp])
+        #V = np.real(V[:, :nComp])
+        D = np.real(D[:nComp])
+        V = np.real(V[:, :nComp])
         # Standardise direction
         ind = np.sum(V, 0) < 0
         V[:, ind] = -V[:, ind]
         # Calculate projection
+        PX_old = PX
         PX = X @ V
         if useY:
             PY = Y @ V
         else:
             PY = np.array([])
 
+        HW = np.sum(V.T@Q@V)
+        if verbose > 2:
+            if iterNum==0:
+                print(f"Iteration: {iterNum}",'non-neg:',np.sum(D>=0),'Hw:',HW)
+            else:
+                print(f"Iteration: {iterNum}",'non-neg:',np.sum(D>=0),'Hw diff:',(HW-HW_old)/HW,f'({HW})')
+
         iterNum = iterNum + 1
-        if (iterNum == maxIter) or not (useY) or (tca > 0):
+        if (iterNum == maxIter) or not (useY) or (tca > 0) or (np.abs((HW-HW_old)/HW)<eps):
             break
 
-    if verbose > 2:
-        print(f"Number of iterations {iterNum}\n")
+        HW_old = HW
+
+
     if verbose > 1:
         # Check do we have any negative eigenvalues.
         ind = D < 0
