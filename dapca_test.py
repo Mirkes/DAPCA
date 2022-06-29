@@ -1,6 +1,9 @@
 import numpy as np
 import warnings
 import numbers
+from timeit import default_timer as timer
+from datetime import timedelta
+
 
 def sub2ind(array_shape, rows, cols):
     return rows * array_shape[1] + cols
@@ -63,7 +66,7 @@ def DAPCA(
           'kNNweights', 'Uniform' required usage of the same weghts for all k
               neares neighbours.
               It is default value
-	          'kNNweights', 'dist' assumed usage of weights proportional to
+          'kNNweights', 'dist' assumed usage of weights proportional to
               distances. This function is implemented as
                   function weights = distProp(distances)
                       weights = distances ./ sum(distnaces, 2)
@@ -294,6 +297,10 @@ def DAPCA(
     # X = X[ind, :]
     # Calculate number of cases of each class n_i and means for classes
     # mu_i formula (6)?
+
+
+    print('Start to compute DAPCA....')
+
     cnt = np.zeros((nClass, 1))
     means = np.zeros((nClass, d))
     for k in range(nClass):
@@ -361,6 +368,8 @@ def DAPCA(
     # Start iterations
     iterNum = 0
     while True:
+        print('Iteration:',iterNum)
+        start_iter = timer()
         wXX = wX.copy()
         if useY:
             wYY = wY.copy()
@@ -432,7 +441,12 @@ def DAPCA(
         # Full matrix is
         Q = Q1 - Q2
         # Calculate principal components.
+        start = timer()
+        print('Computing eigen vectors...')
         D, V = np.linalg.eig(Q)
+        end = timer()
+        print('Time to compute eigenvectors:',timedelta(seconds=end-start))
+
         # Sort eigenvalues
         ind = np.argsort(D, axis=0, kind="mergesort")[::-1]
         D = D[ind]
@@ -453,6 +467,10 @@ def DAPCA(
         iterNum = iterNum + 1
         if (iterNum == maxIter) or not (useY) or (tca > 0):
             break
+
+        end_iter = timer()
+        print('Time to compute iteration:',timedelta(seconds=end_iter-start_iter))
+        
 
     if verbose > 2:
         print(f"Number of iterations {iterNum}\n")

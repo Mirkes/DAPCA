@@ -1,3 +1,5 @@
+close all;
+
 X = load('C:\Datas\DAPCA\2clusters\2clusters_3d\X.csv');
 labels = load('C:\Datas\DAPCA\2clusters\2clusters_3d\labels.csv');
 Y = load('C:\Datas\DAPCA\2clusters\2clusters_3d\Y.csv');
@@ -31,7 +33,7 @@ histogram(u(labels_all==-1,1),30,'FaceColor','b','FaceAlpha',.3);
 title(strcat('Supervised advanced PCA, all points, alpha=',num2str(alpha)));
 
 figure; 
-[V2, D2, PXd, PYd] = DAPCA(X, labels, Y, 2, 'alpha', alpha, 'beta', beta, 'gamma', gamma,'kNN',kNN);
+[V2, D2, PXd, PYd] = DAPCA_exp(X, labels, Y, 2, 'alpha', alpha, 'beta', beta, 'gamma', gamma,'kNN',kNN);
 scatter(PXd(:,1),PXd(:,2),10,labels,'filled'); hold on;
 scatter(PYd(:,1),PYd(:,2),10,'r','filled'); 
 title(strcat('DAPCA, alpha=',num2str(alpha)));

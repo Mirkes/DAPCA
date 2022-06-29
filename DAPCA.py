@@ -1,31 +1,107 @@
+from __future__ import annotations
+from typing import Dict, Optional, Tuple
+
 import numpy as np
 import warnings
 import numbers
 import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
 from sklearn.neighbors import NearestNeighbors
+from pynndescent import NNDescent
 
 
 class YourCustomKNN(ABC):
-    """ Template class helper for custom knn """
+    """Template class helper for custom knn"""
 
     def __init__(self, your_custom_param):
         self.your_custom_param = your_custom_param
 
     @abstractmethod
     def fit(self, X):
-        """ (Optional) method to reduce computations by fitting reference points once before queries (as in sklearn NearestNeighbors)"""
+        """(Optional) method to reduce computations by fitting reference points once before queries (as in sklearn NearestNeighbors)"""
         self._fit(X)
         return self
 
     @abstractmethod
     def kneighbors(self, Y, X=None):
-        """ Returns kNNs of each point of Y in X. 
-            dist, inds : sorted distances and indices of shape (len(Y) x kNN) """
+        """Returns kNNs of each point of Y in X.
+        dist, inds : sorted distances and indices of shape (len(Y) x kNN)"""
         if hasattr(self, "fit"):
             dist, inds = self._kneighbors(Y)
         else:
             dist, inds = self._kneighbors(Y, X)
+
+
+class NNDescentWithTree(YourCustomKNN):
+    """
+    NNDescent-based nearest neighbors. It combines approximate
+    nearest neighbors computation and exploitation of tree structure
+    in data to yield excellent performance on large datasets.
+
+    Parameters
+    ----------
+    n_neighbors: int
+        Number of nearest neighbors to compute.
+
+    metric: str, default = "euclidean"
+        Scipy-compatible metric to use in order to evaluate
+        neighbors distance.
+
+    metric_kwargs: Optional[Dict] = None
+        Custom metric parameters in the form of a dictionary.
+    """
+
+    def __init__(
+        self,
+        n_neighbors: int,
+        metric: str = "euclidean",
+        metric_kwargs: Optional[Dict] = None,
+    ):
+        YourCustomKNN.__init__(self, None)
+        self.n_neighbors = n_neighbors
+        self.metric = metric
+        if metric_kwargs is None:
+            metric_kwargs = {}
+        self.metric_kwargs = metric_kwargs
+        self.qtree: Optional[NNDescent] = None
+
+    def fit(self, X: np.ndarray) -> NNDescentWithTree:
+        """
+        Computes the query tree and stores it.
+        """
+        self.qtree = NNDescent(
+            X,
+            n_neighbors=self.n_neighbors,
+            metric=self.metric,
+            metric_kwds=self.metric_kwargs,
+        )
+        self.qtree.prepare()
+        return self
+
+    def kneighbors(
+        self,
+        Y: np.ndarray,
+        X: Optional[np.ndarray] = None,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Returns kNN of Y points in X using precomputed qtree.
+        """
+        if X is not None:
+            warnings.warn(
+                "X provided but qtree was precomputed. Replacing qtree using X."
+            )
+            self.qtree = NNDescent(
+                X,
+                n_neighbors=self.n_neighbors,
+                metric=self.metric,
+                metric_kwds=self.metric_kwargs,
+            )
+            self.qtree.prepare()
+        else:
+            assert (
+                self.qtree is not None
+            ), "Calling fit(X) is mandatory if X is not provided."
+        return self.qtree.query(Y, k=self.n_neighbors)
 
 
 def sub2ind(array_shape, rows, cols):
@@ -48,13 +124,14 @@ def DAPCA(
     verbose="warning",
     knn_class_instance=None,
     n_jobs=-1,
-    eps = 1e-3
+    eps=1e-3,
+    initialV = None
 ):
     """
     DAPCA calculated Domain Adaptation Principal Components (DAPCA) or,
     if matrix Y is empty, Supervised principal components (SPCA) for problem
     of classification. Detailed description of these types of principal
-    components (PCom) can be found in 
+    components (PCom) can be found in
       Gorban, A.N., Grechuk, B., Mirkes, E.M., Stasenko, S.V. and Tyukin,
       I.Y., 2021. High-dimensional separability for one-and few-shot
       learning. arXiv preprint arXiv:2106.15416. or in ???
@@ -74,7 +151,7 @@ def DAPCA(
           less than d.
       Name, Value pairs can be one of the following type
           'alpha', nonnegative real number is attraction of projections of
-              points with the same label in labelled dataset. 
+              points with the same label in labelled dataset.
               Default value is 0.
           'alpha', nClass-by-1 vector of nonnegative real numbers is vector
               of attraction of projections of points with the same label in
@@ -96,7 +173,7 @@ def DAPCA(
               distances. This function is implemented as
                   function weights = distProp(distances)
                       weights = distances ./ sum(distnaces, 2)
-                  
+
           'kNNweights', function handle is handle of function inputs and
               outputs described above.
           'delta', positive real number assumes usage the same number for all
@@ -104,7 +181,7 @@ def DAPCA(
               Default value is 1.
           'delta', nClass-by-1 vector of positive real numbers R assumes
               usage of matrix Delta with elements Delta(i,j) = abs(R(i)-R(j))
-              for i < j. 
+              for i < j.
           'delta', matrix with positive real numbers upper the main diagonal.
               Matrix must have size nClass-by-nClass. This method can be
               usefull for ordinal target attribute.
@@ -124,7 +201,7 @@ def DAPCA(
                         your_knn_class_instance.kneighbors(Y) if the class has a fit method
                         your_knn_class_instance.kneighbors(Y,X) if the class has no fit method
                 See DAPCA.YourCustomKNN for an example class template
-                        
+
     Outputs:
       V is d-by-nComp matrix with one PCom is each column.
       D is nComp-by-1 vector with the greatest nComp eigenvalues.
@@ -145,7 +222,7 @@ def DAPCA(
 
     # Create knn class instance if custom knn class not provided
     if knn_class_instance is None:
-        knn_class_instance = NearestNeighbors(n_neighbors=kNN,n_jobs=n_jobs)
+        knn_class_instance = NearestNeighbors(n_neighbors=kNN, n_jobs=n_jobs)
 
     # Sanity check of positional arguments
     # Type of X
@@ -400,6 +477,13 @@ def DAPCA(
         PY = Y
 
     PX = X
+
+    if initialV is not None:
+        PX = X@initialV
+        if useY:
+            PY = Y@initialV
+    else:
+        PX = X
     # Start iterations
     iterNum = 0
     HW_old = 1e10
@@ -484,8 +568,8 @@ def DAPCA(
         D = D[ind]
         V = V[:, ind]
         # Save the first nComp elements only
-        #D = np.real(D[:nComp])
-        #V = np.real(V[:, :nComp])
+        # D = np.real(D[:nComp])
+        # V = np.real(V[:, :nComp])
         D = np.real(D[:nComp])
         V = np.real(V[:, :nComp])
         # Standardise direction
@@ -499,19 +583,30 @@ def DAPCA(
         else:
             PY = np.array([])
 
-        HW = np.sum(V.T@Q@V)
+        HW = np.sum(V.T @ Q @ V)
         if verbose > 2:
-            if iterNum==0:
-                print(f"Iteration: {iterNum}",'non-neg:',np.sum(D>=0),'Hw:',HW)
+            if iterNum == 0:
+                print(f"Iteration: {iterNum}", "non-neg:", np.sum(D >= 0), "Hw:", HW)
             else:
-                print(f"Iteration: {iterNum}",'non-neg:',np.sum(D>=0),'Hw diff:',(HW-HW_old)/HW,f'({HW})')
+                print(
+                    f"Iteration: {iterNum}",
+                    "non-neg:",
+                    np.sum(D >= 0),
+                    "Hw diff:",
+                    (HW - HW_old) / HW,
+                    f"({HW})",
+                )
 
         iterNum = iterNum + 1
-        if (iterNum == maxIter) or not (useY) or (tca > 0) or (np.abs((HW-HW_old)/HW)<eps):
+        if (
+            (iterNum == maxIter)
+            or not (useY)
+            or (tca > 0)
+            or (np.abs((HW - HW_old) / HW) < eps)
+        ):
             break
 
         HW_old = HW
-
 
     if verbose > 1:
         # Check do we have any negative eigenvalues.
@@ -530,13 +625,13 @@ def DAPCA(
 
 
 def uniformWeights(distances):
-    """ Calculate constant weights for all neighbours."""
+    """Calculate constant weights for all neighbours."""
     weights = np.ones_like(distances)
     return weights
 
 
 def distProp(distances):
-    """ Calculate weights proportional to relative distance."""
+    """Calculate weights proportional to relative distance."""
     weights = distances / np.max(distances, 1)
     return weights
 
