@@ -4,6 +4,8 @@ Domain adaptation PCA method introduced in [https://www.mdpi.com/1099-4300/23/8/
 
 ## Installation
 
+    pip install git+git://github.com/Mirkes/DAPCA.git
+
 ## Example of use
 
 ### Importing libraries
