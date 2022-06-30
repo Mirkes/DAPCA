@@ -2,7 +2,7 @@
 
 Domain adaptation PCA method introduced in [Gorban et al, High-Dimensional Separability for One- and Few-Shot Learning. Entropy 2021, 23(8), 1090](https://doi.org/10.3390/e23081090). 
 
-Domain Adaptation Principal Component Analysis: a new base linear method for domain adaptation (learning on out-of-distribution data).
+Domain Adaptation Principal Component Analysis is a new base linear method for domain adaptation (learning on out-of-distribution data).
 
 The main and classical assumption of standard machine learning approaches is existence of the probability distribution and that this distribution is the same or very similar for the training and test sets. However, this assumption can be easily violated in real-life, when the training set differs from the data that the system should work with under operational conditions. The worst is that the new data have no known labels. Such situations are typical and lead to the problem of domain adaptation which became recently popular.
 
