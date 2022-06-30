@@ -1,6 +1,6 @@
 # DAPCA
 
-Domain adaptation PCA method introduced in (Gorban et al, High-Dimensional Separability for One- and Few-Shot Learning. Entropy 2021, 23(8), 1090)[https://doi.org/10.3390/e23081090]. 
+Domain adaptation PCA method introduced in [Gorban et al, High-Dimensional Separability for One- and Few-Shot Learning. Entropy 2021, 23(8), 1090](https://doi.org/10.3390/e23081090). 
 
 Domain Adaptation Principal Component Analysis: a new base linear method for domain adaptation (learning on out-of-distribution data).
 
