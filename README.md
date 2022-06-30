@@ -4,7 +4,17 @@ Domain adaptation PCA method introduced in [https://www.mdpi.com/1099-4300/23/8/
 
 ## Installation
 
-    pip install git+git://github.com/Mirkes/DAPCA.git
+Copy DAPCA.py or DAPCA.m specify the path to it. 
+
+## Dependencies (Python)
+
+* numpy
+* sklearn
+* pynndescent
+* matplotlib
+* numbers
+* warnings
+* abc
 
 ## Example of use
 
