@@ -63,6 +63,7 @@ Domain adaptation PCA method introduced in [https://www.mdpi.com/1099-4300/23/8/
     kNN = 1
     # =======================================================================
 
+    # Compute Supervised PCA (SPCA)
     [V1, D1, PX, PY, kNNs] = DAPCA(X, labels, 2, alpha=alpha)
     PX_SPCA = PX.copy()
     V1_SPCA = V1.copy()
@@ -88,13 +89,14 @@ Domain adaptation PCA method introduced in [https://www.mdpi.com/1099-4300/23/8/
     plt.title('SPC1',fontsize=20)
     plt.show()
 
-
+    # We will use initial neighbourhood relations as in 2D PCA
     initialV = pca.components_[:num_comps,:].T
     if num_comps==1:
         initialV = initialV.reshape(-1,1)
 
     plt.subplots(1,2,figsize=(10,5))
 
+    # Compute DAPCA
     [V1, D1, PX, PY, kNNs] = DAPCA(X, labels, num_comps,  YY=Y, 
                              alpha=alpha, gamma=gamma,maxIter=maxIter,
                                    beta=beta,verbose='all',kNN=kNN,
