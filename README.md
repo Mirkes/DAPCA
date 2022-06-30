@@ -116,3 +116,7 @@ Domain adaptation PCA method introduced in [https://www.mdpi.com/1099-4300/23/8/
     plt.hist(PY[:,0],bins=nbins,color='grey',alpha=0.5,range=rng)
     plt.title('DAPC1',fontsize=20)
     plt.show()
+    
+### Expected output
+
+
