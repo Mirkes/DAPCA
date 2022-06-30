@@ -4,7 +4,7 @@ Domain adaptation PCA method introduced in [https://www.mdpi.com/1099-4300/23/8/
 
 ## Installation
 
-Copy DAPCA.py or DAPCA.m specify the path to it. 
+Copy DAPCA.py or DAPCA.m, specify the path to the module. 
 
 ## Dependencies (Python)
 
@@ -16,7 +16,7 @@ Copy DAPCA.py or DAPCA.m specify the path to it.
 * warnings
 * abc
 
-## Example of use
+## Example of use (Python)
 
 ### Importing libraries
 
