@@ -121,4 +121,6 @@ Domain adaptation PCA method introduced in [https://www.mdpi.com/1099-4300/23/8/
     
 ### Expected output
 
-![](images/DAPCA_PCA.png =400x)
+![](images/DAPCA_PCA.png)
+![](images/DAPCA_SPCA.png)
+![](images/DAPCA_DAPCA.png)
