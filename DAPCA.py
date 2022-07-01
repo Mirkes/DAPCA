@@ -101,7 +101,8 @@ class NNDescentWithTree(YourCustomKNN):
             assert (
                 self.qtree is not None
             ), "Calling fit(X) is mandatory if X is not provided."
-        return self.qtree.query(Y, k=self.n_neighbors)
+        q = self.qtree.query(Y, k=self.n_neighbors)
+        return (q[1],q[0])
 
 
 def sub2ind(array_shape, rows, cols):
@@ -469,7 +470,7 @@ def DAPCA(
         kNNs = np.zeros((nY, kNN), dtype=int)
         kNNDist = kNNs.astype(float)
         # estimate step of Y records to calculate distances to all X records
-        maxY = np.floor(1e8 / nX)
+        maxY = np.int(np.floor(1e8 / nX))
         if maxY > nY:
             maxY = nY
 
@@ -534,7 +535,8 @@ def DAPCA(
                 #        np.tile(np.arange(nS)[:, None], (1, kNN)),
                 #        ind[:, :kNN],
                 #    )
-                tmp[np.tile(np.arange(nS)[:, None], (1, kNN)), ind[:, :kNN]] = kNNDist[
+                tl = np.tile(np.arange(nS)[:, None], (1, kNN))
+                tmp[tl, ind[:, :kNN]] = kNNDist[
                     k - 1 : kk, :
                 ]
                 tmp = Y[k - 1 : kk, :].T @ tmp @ X
