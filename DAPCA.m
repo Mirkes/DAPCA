@@ -285,9 +285,6 @@ function [V, D, PX, PY] = DAPCA(XX, labels, YY, nComp, varargin)
             warning(warn{k});
         end
     end
-    % Reoder labels and X in oreder of labels
-    % [~, ind] = sort(labels);
-    % X = X(ind, :);
     % Calculate number of cases of each class n_i and means for classes
     % mu_i formula (6)?
     cnt = zeros(nClass, 1);
@@ -305,7 +302,7 @@ function [V, D, PX, PY] = DAPCA(XX, labels, YY, nComp, varargin)
     end
     % Convert matrix delta to full matrix with -alpha on diagonal and delta
     % off diagonal and with normalisation by number of elements in each
-    % class. Formulae (12)
+    % class. Formula (12)
     alpha = -alpha ./ (cnt .* (cnt -1));
     delta = delta ./ (cnt * cnt');
     %alpha = -alpha;
