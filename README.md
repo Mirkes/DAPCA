@@ -24,6 +24,10 @@ Copy DAPCA.py or DAPCA.m, specify the path to the module.
 * warnings
 * abc
 
+## Benchmarking with linear Domain Adaptation methods, using toy example
+
+Comparison of DAPCA with Subspace Alignment, Correlation alignment and Transfer Component Analysis using a simple toy example can be found [in this notebook](ComparisonOfLinearDAMethods_clean.ipynb).
+
 ## Example of use (Python)
 
 ### Importing libraries
