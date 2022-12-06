@@ -1,12 +1,12 @@
-% DAPCA test
+% DAPCA test 
+% It is assumed that user have the same structure of folders as in repository
 % Add pathes for code used for comparison and for 
-addpath('C:\localdata\local\GitHub\SupervisedPCA\SupervisedPCA');
-addpath('C:\localdata\local\App\Matlab\utils');
+addpath('..\utils');
 
 %% Read data
-X = load('datasets\synthetic\3clusters\2sticks_sheet\X.csv');
-labels = load('datasets\synthetic\3clusters\2sticks_sheet\labels.csv');
-Y = load('datasets\synthetic\3clusters\2sticks_sheet\Y.csv');
+X = load('..\datasets\synthetic\3clusters\2sticks_sheet\X.csv');
+labels = load('..\datasets\synthetic\3clusters\2sticks_sheet\labels.csv');
+Y = load('..\datasets\synthetic\3clusters\2sticks_sheet\Y.csv');
 
 %% Supervised PCA for comparison
 alpha = 1;
