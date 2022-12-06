@@ -2,6 +2,7 @@
 % It is assumed that user have the same structure of folders as in repository
 % Add pathes for code used for comparison and for 
 addpath('..\utils');
+addpath('..\');
 
 %% Read data
 X = load('..\datasets\synthetic\3clusters\2sticks_sheet\X.csv');
