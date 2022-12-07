@@ -4,12 +4,12 @@ labels = load('C:\MyPrograms\Python\DAPCA\2clusters_3d_labels.csv');
 target_labels = load('C:\MyPrograms\Python\DAPCA\2clusters_3d_target_labels.csv');
 
 %Xs = Xs ./ repmat(sum(Xs,2),1,size(Xs,2));
-%Xs = zscore(Xs,1);
-Xs = Xs - repmat(mean(Xs,1),size(Xs,1),1);
+%Xs = Xs - repmat(mean(Xs,1),size(Xs,1),1);
+Xs = zscore(Xs,1);
 
 %Xt = Xt./ repmat(sum(Xt,2),1,size(Xt,2));
-%Xt = zscore(Xt,1);
-Xt = Xt - repmat(mean(Xt,1),size(Xt,1),1);
+%Xt = Xt - repmat(mean(Xt,1),size(Xt,1),1);
+Xt = zscore(Xt,1);
 
 eps = 1;
 cov_source = cov(Xs) + eps*eye(size(Xs, 2));
